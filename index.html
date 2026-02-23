@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>U.S. Figure Skating — Jump Assessment</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:    #0D1B4B;
+    --navy2:   #162259;
+    --ice:     #D6E4F0;
+    --gold:    #C8922A;
+    --gold2:   #E5A83C;
+    --white:   #FFFFFF;
+    --off:     #F7F8FC;
+    --slate:   #8292B0;
+    --text:    #1A2340;
+    --correct: #166534;
+    --correctbg: #DCFCE7;
+    --wrong:   #991B1B;
+    --wrongbg: #FEE2E2;
+    --pending: #92400E;
+    --pendingbg: #FEF3C7;
+    --sA: #1B5E8A;
+    --sB: #1A6B45;
+    --sC: #6B2F8A;
+    --sD: #B85C00;
+    --sE: #3D5A80;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOP BAR ── */
+  header {
+    background: var(--navy2);
+    border-bottom: 2px solid var(--gold);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-badge {
+    width: 32px; height: 32px;
+    background: var(--gold);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    color: var(--navy);
+    font-weight: bold;
+  }
+  .logo-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ice);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: var(--slate);
+    letter-spacing: 0.02em;
+  }
+  .header-stats {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .stat-pill {
+    background: rgba(214,228,240,0.08);
+    border: 1px solid rgba(214,228,240,0.15);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--ice);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stat-pill span { color: var(--gold2); font-weight: 600; }
+
+  /* ── LAYOUT ── */
+  .app {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 56px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: rgba(255,255,255,0.03);
+    border-right: 1px solid rgba(214,228,240,0.08);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+  .sidebar-section {
+    margin-bottom: 4px;
+  }
+  .sidebar-section-header {
+    padding: 6px 16px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--slate);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .sec-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .sidebar-items {
+    padding: 2px 8px;
+  }
+  .sidebar-item {
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: rgba(214,228,240,0.6);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sidebar-item:hover {
+    background: rgba(214,228,240,0.06);
+    color: var(--ice);
+  }
+  .sidebar-item.active {
+    background: rgba(200,146,42,0.15);
+    color: var(--gold2);
+  }
+  .item-id {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--slate);
+    flex-shrink: 0;
+    width: 30px;
+  }
+  .item-status {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.1);
+  }
+  .item-status.correct { background: var(--correct); }
+  .item-status.wrong   { background: var(--wrong); }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--navy);
+  }
+
+  /* ── FILTERS ── */
+  .filter-bar {
+    width: 100%;
+    max-width: 760px;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid rgba(214,228,240,0.2);
+    color: var(--slate);
+    background: transparent;
+    transition: all 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .filter-chip:hover {
+    border-color: rgba(214,228,240,0.4);
+    color: var(--ice);
+  }
+  .filter-chip.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--navy);
+    font-weight: 600;
+  }
+  .search-input {
+    margin-left: auto;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(214,228,240,0.15);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--ice);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    width: 180px;
+    transition: border-color 0.15s;
+  }
+  .search-input::placeholder { color: var(--slate); }
+  .search-input:focus { border-color: rgba(200,146,42,0.5); }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--white);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 760px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    transition: transform 0.15s;
+  }
+
+  .card-header {
+    padding: 16px 20px 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border-bottom: 1px solid #F0F0F0;
+  }
+  .card-id-badge {
+    flex-shrink: 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--off);
+    color: var(--slate);
+    margin-top: 2px;
+  }
+  .card-section-tag {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-top: 2px;
+  }
+  .card-question {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    line-height: 1.45;
+    color: var(--text);
+    flex: 1;
+  }
+  .card-type-pill {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-top: 2px;
+  }
+  .pill-mc   { background: #EFF6FF; color: #1E40AF; }
+  .pill-tf   { background: #F0FDF4; color: #166534; }
+  .pill-ms   { background: #FFF7ED; color: #C2410C; }
+  .pill-fc   { background: #F5F3FF; color: #6D28D9; }
+
+  /* ── VIDEO LINK ── */
+  .video-link {
+    margin: 0 20px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #1E40AF;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .video-link:hover {
+    background: #DBEAFE;
+    border-color: #93C5FD;
+  }
+  .video-icon {
+    width: 28px; height: 28px;
+    background: #1E40AF;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* ── OPTIONS ── */
+  .card-options {
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .option-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1.5px solid #E5E7EB;
+    background: #FAFAFA;
+    cursor: pointer;
+    text-align: left;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    transition: border-color 0.15s, background 0.15s;
+    width: 100%;
+  }
+  .option-btn:hover:not(:disabled) {
+    border-color: #9CA3AF;
+    background: #F3F4F6;
+  }
+  .option-btn:disabled { cursor: default; }
+  .option-letter {
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: #E5E7EB;
+    color: #6B7280;
+    font-weight: 700;
+    font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .option-text {
+    line-height: 1.45;
+    padding-top: 2px;
+    white-space: pre-wrap;
+    font-family: 'DM Mono', monospace;
+    font-size: 12.5px;
+  }
+
+  /* Selected states */
+  .option-btn.selected-correct {
+    border-color: #86EFAC;
+    background: var(--correctbg);
+  }
+  .option-btn.selected-correct .option-letter {
+    background: var(--correct);
+    color: white;
+  }
+  .option-btn.selected-wrong {
+    border-color: #FCA5A5;
+    background: var(--wrongbg);
+  }
+  .option-btn.selected-wrong .option-letter {
+    background: var(--wrong);
+    color: white;
+  }
+  .option-btn.correct-reveal {
+    border-color: #86EFAC;
+    background: var(--correctbg);
+    opacity: 0.7;
+  }
+  .option-btn.correct-reveal .option-letter {
+    background: var(--correct);
+    color: white;
+  }
+
+  /* ── FEEDBACK ── */
+  .feedback-box {
+    margin: 0 20px 16px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+  .feedback-box.show { display: block; }
+  .feedback-correct {
+    background: var(--correctbg);
+    border: 1px solid #86EFAC;
+    color: var(--correct);
+  }
+  .feedback-wrong {
+    background: var(--wrongbg);
+    border: 1px solid #FCA5A5;
+    color: var(--wrong);
+  }
+  .feedback-label {
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .feedback-text {
+    white-space: pre-wrap;
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  /* ── FLASHCARD ── */
+  .flashcard-inner {
+    padding: 20px;
+  }
+  .flip-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--navy);
+    color: var(--gold2);
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    letter-spacing: 0.02em;
+    margin-top: 4px;
+  }
+  .flip-btn:hover { background: var(--navy2); }
+  .answer-box {
+    margin-top: 16px;
+    padding: 16px;
+    background: #F5F3FF;
+    border: 1px solid #DDD6FE;
+    border-radius: 10px;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+  .answer-box.show { display: block; }
+  .answer-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6D28D9;
+    margin-bottom: 8px;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    width: 100%;
+    max-width: 760px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  .progress-text {
+    font-size: 12px;
+    color: var(--slate);
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: right;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--slate);
+  }
+  .empty-state h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--ice);
+    margin-bottom: 8px;
+  }
+
+  /* ── SECTION COLORS ── */
+  .sec-A .card-section-tag { background: #EFF6FF; color: var(--sA); }
+  .sec-B .card-section-tag { background: #F0FDF4; color: var(--sB); }
+  .sec-C .card-section-tag { background: #F5F3FF; color: var(--sC); }
+  .sec-D .card-section-tag { background: #FFF7ED; color: var(--sD); }
+  .sec-E .card-section-tag { background: #EFF6FF; color: var(--sE); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .main { padding: 16px; }
+    .filter-bar { gap: 6px; }
+    .search-input { width: 120px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-badge">JS</div>
+    <div>
+      <div class="logo-text">Jump Assessment</div>
+      <div class="logo-sub">U.S. Figure Skating · Technical Panel Training</div>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-pill" id="stat-answered">Answered <span id="count-answered">0</span></div>
+    <div class="stat-pill" id="stat-correct">Correct <span id="count-correct">0</span></div>
+    <div class="stat-pill" id="stat-total">Total <span id="count-total">0</span></div>
+  </div>
+</header>
+
+<div class="app">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main" id="main">
+    <div class="filter-bar" id="filter-bar">
+      <button class="filter-chip active" data-filter="all">All</button>
+      <button class="filter-chip" data-filter="A">A · Video</button>
+      <button class="filter-chip" data-filter="B">B · Code</button>
+      <button class="filter-chip" data-filter="C">C · Protocol</button>
+      <button class="filter-chip" data-filter="D">D · Rules</button>
+      <button class="filter-chip" data-filter="E">E · Flashcards</button>
+      <button class="filter-chip" data-filter="mc">MC Only</button>
+      <button class="filter-chip" data-filter="unanswered">Unanswered</button>
+      <input class="search-input" type="text" id="search" placeholder="Search questions…">
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="progress-text" id="progress-text"></div>
+    </div>
+    <div id="cards-container"></div>
+  </main>
+</div>
+
+<script>
+const SECTIONS = {
+  A: { label: 'Video Review',        color: '#1B5E8A' },
+  B: { label: 'Code & Modifiers',    color: '#1A6B45' },
+  C: { label: 'Protocol Vetting',    color: '#6B2F8A' },
+  D: { label: 'Rules & Concepts',    color: '#B85C00' },
+  E: { label: 'Definitions & Rules', color: '#3D5A80' },
+};
+
+const DATA = [{"id": "Q01", "type": "mc", "section": "A", "question": "Senior Women FS What is the verbal call if a skater executes the elements in the video during the Choreographic Sequence?", "video_url": "https://www.dropbox.com/scl/fi/rksri75kltoa66y1zl27c/ChSq.mp4?rlkey=cjxwcbfi3nd1xpvohlydntm1z&st=ptk2qk6i&dl=0", "options": [{"letter": "A", "text": "(There is no verbal call and these elements are not considered by the technical panel)"}, {"letter": "B", "text": "\"Single Axel, Single Axel, Single Axel, Sequence\""}, {"letter": "C", "text": "\"Single Axel, Single Axel, + Sequence, Single Axel\""}, {"letter": "D", "text": "\"Lutz no value, Single Axel, Single Axel, Single Axel, Sequence\""}, {"letter": "E", "text": "\"Single Lutz, Single Axel, Single Axel, Single Axel, Sequence\""}, {"letter": "F", "text": "\"Review\""}], "correct": ["A"], "feedback": "Listed single and double jumps included in the Choreographic Sequence will not beÂ called and will not occupy an elementâ€™s box."}, {"id": "Q02", "type": "mc", "section": "A", "question": "Preliminary Girls Free Skate What is the written element code for the element in this video?", "video_url": "https://www.dropbox.com/scl/fi/1iuwrax25qywlekg2gf58/Jump-1.mp4?rlkey=eo43ijb6gillhh6d1memogrch&st=mh3a5996&dl=0", "options": [{"letter": "A", "text": "1A<<+SEQ+1Lo*+A*"}, {"letter": "B", "text": "1A<<+COMBO+1Lo*+1A<<*"}, {"letter": "C", "text": "A+SEQ+1Lo*+1A<<*"}, {"letter": "D", "text": "A+COMBO+1Lo*+A*"}, {"letter": "E", "text": "A+COMBO"}, {"letter": "F", "text": "1A<<+SEQ"}], "correct": ["C"], "feedback": "The first axel type jump only rotates half a revolution and doesn't meet the definition of a downgraded single axel, therefore is called an axel no value\n\nThe skater steps out with a transfer of weight and attempts a single loop followed by another axel type jump, indicating the correct code should beÂ the executed jump before the mistake + sequence + the executed jump(s). The jumps after the mistake are marked with an *.Â \n\nThe final axel type jump rotates to 3/4 of a revolution, with the jump missing over 1/2 of revolutions (1A<<)."}, {"id": "Q03", "type": "mc", "section": "A", "question": "Junior Women Short Program What is the written element code of the following jump combination:", "video_url": "https://www.dropbox.com/scl/fi/4mtt6zjn86skg5sdy2fbc/Jump-11.mp4?rlkey=qqxn1p32t2ef6k7iknejnvbyh&st=mgocm0he&dl=0", "options": [{"letter": "A", "text": "3A+2T (Fall)"}, {"letter": "B", "text": "3A+3T<< (Fall)"}, {"letter": "C", "text": "3A+3T<<b1 (Fall)"}, {"letter": "D", "text": "3Ab1+3T<< (Fall)"}, {"letter": "E", "text": "2A+3T<< (Fall)"}, {"letter": "F", "text": "2A+2T (Fall)"}], "correct": ["D"], "feedback": "The 3Tis missing at least half of a revolution (landed forward). The jump combination is not eligible for the triple-triple combination bonus because of the downgrade on the 3T. However, the 3A is eligible for the 3A bonus even with the 3T<<"}, {"id": "Q04", "type": "mc", "section": "A", "question": "Juvenile Girls Free Skate What is the final written element code that shows up on the protocol?", "video_url": "https://www.dropbox.com/scl/fi/u36z4kuh2efhf37dazuu9/Jump-5.mp4?rlkey=l6nyg59awa0laolc13yqqp82d&st=lu0iml7x&dl=0", "options": [{"letter": "A", "text": "2Lz+2T+2Lo"}, {"letter": "B", "text": "2Lz+2T+2Lo*"}, {"letter": "C", "text": "2Lz+2T+2Lob1"}, {"letter": "D", "text": "2Lz+2T+COMBO+2Lo*"}], "correct": ["B"], "feedback": "One jump combination at juvenile can consist of three jumps with a maximum of two double jumps and one single jump. If double axel or triple jump is part of the three-jump combination/sequence, then two other double jumps may be included."}, {"id": "Q05", "type": "mc", "section": "A", "question": "Juvenile Girls Free Skate What is the verbal call for the element in this video?", "video_url": "https://www.dropbox.com/scl/fi/99znow1nzbpsxqqrnwmpz/Jump-4.mp4?rlkey=r6psrn5lrbl6iy0yf1lcwcd9w&st=zu1sqkky&dl=0", "options": [{"letter": "A", "text": "Double Axel, Fall, +Sequence, Single Axel, Double Loop"}, {"letter": "B", "text": "Double Axel, Fall in Element, Single Axel, Double Loop"}, {"letter": "C", "text": "Double Axel, Fall, +Combo, Single Axel, Double Loop"}, {"letter": "D", "text": "Double Axel, Fall (remaining jumps are ignored)"}], "correct": ["A"], "feedback": "*bonus isn't always said, can add in if we want specialists saying it as part of verbal call*\n\npage 1 of handbook says falls in elements are simply called \"fall\"\n\nnext jump is a single axel, so the call is '+ Sequence'"}, {"id": "Q06", "type": "mc", "section": "A", "question": "What is the written code for the element in this video?", "video_url": "https://www.dropbox.com/scl/fi/wf0hhpniblokyt6wamj98/Jump-3.mp4?rlkey=ceeqvudmpckna1xi5kp20tjuy&st=zzx3e1mq&dl=0", "options": [{"letter": "A", "text": "2T"}, {"letter": "B", "text": "3T<<"}, {"letter": "C", "text": "2T<<"}, {"letter": "D", "text": "1T"}, {"letter": "E", "text": "T"}, {"letter": "F", "text": "T*"}], "correct": ["C"], "feedback": ""}, {"id": "Q07", "type": "mc", "section": "A", "question": "What is the written code for the element in this video?", "video_url": "https://www.dropbox.com/scl/fi/9wkuu2lly8xa3u3cqbixc/Jump-8.mp4?rlkey=4huh4nhj0x130gilmhxmgahsr&st=o6o7h3lo&dl=0", "options": [{"letter": "A", "text": "2F+1Eu+2S"}, {"letter": "B", "text": "2F+Eu+2S"}, {"letter": "C", "text": "2F+1Eu<+2S"}, {"letter": "D", "text": "2F+1Eu<<+2S"}], "correct": ["D"], "feedback": "An Euler, when used in combinations between two listed jumps, becomes a listed jump (1Eu) with the value indicated in the SOV. Single Euler (1Eu) missing half a revolution or more will be considered as downgraded. In this case the judges will apply the reduction for a downgraded jump (<<). If the Single Euler is missing less than half a revolution, it will not be considered as under-rotated (<) or as landed on the quarter (q) by the Technical panel."}, {"id": "Q08", "type": "mc", "section": "A", "question": "Novice Women SP What is the written code for the element in this video?", "video_url": "https://www.dropbox.com/scl/fi/l9i10aa16bqc0iqw1kkcg/Jump-7.mp4?rlkey=8770bm9h4nhsqvvavdwdcfr9y&st=mizs4370&dl=0", "options": [{"letter": "A", "text": "2Lz+2Lo<"}, {"letter": "B", "text": "2Lz!+2Lo<"}, {"letter": "C", "text": "2Lze+2Lo<"}], "correct": ["C"], "feedback": "Goal is to focus on the edge call for the Lutz"}, {"id": "Q09", "type": "mc", "section": "A", "question": "Novice Men Free Skate What is the verbal call for the element in this video?", "video_url": "https://www.dropbox.com/scl/fi/4wqjindgwn56gzkxfo3z9/Jump-9.mp4?rlkey=h65hx5m15sh13haxjsbbpdvyv&st=uaj8nwrp&dl=0", "options": [{"letter": "A", "text": "Double Axel, Bonus, Double Toe"}, {"letter": "B", "text": "Double Axel, Double Toe"}, {"letter": "C", "text": "Double Axel, Double Toeloop"}, {"letter": "D", "text": "Double Axel, Bonus, Double Toeloop"}, {"letter": "E", "text": "Double Axel, + Combo, Double Toe"}, {"letter": "F", "text": "Double Axel, + Combo, Double Toeloop"}], "correct": ["B"], "feedback": "Proper language is Double Toe, not Double Top Loop.\n\nIn case of a touch down with the free foot without weight transfer and up to 2 three turns or no turns between the jumps in a combination, the element remains a jump combination (however Judges will reduce the GOE because of error).Â  Â \n\nIn case of more than 1 full revolution on the ice, the call will be the jumps performed prior to this revolution + COMBO + all the next jumps with an *.Â"}, {"id": "Q10", "type": "mc", "section": "B", "question": "In a junior man's singles short program a skater does the following, double lutz wrong edge and under rotated. What is the correct code that will appear on the final protocol?", "video_url": null, "options": [{"letter": "A", "text": "2Lze<"}, {"letter": "B", "text": "2Lze<*"}, {"letter": "C", "text": "2Lze< + COMBO"}, {"letter": "D", "text": "2Loe<*"}], "correct": ["C"], "feedback": ""}, {"id": "Q11", "type": "mc", "section": "B", "question": "An Intermediate Man starts the following at 3 minutes and 12 seconds in his Free Skate: Single Eule Double Flip Triple Loop, under rotated What will appear on the final protocol?", "video_url": null, "options": [{"letter": "A", "text": "1Eu + 2F + 3Lo<"}, {"letter": "B", "text": "2F + 3Lo<b1"}, {"letter": "C", "text": "This will not be on the protocol"}, {"letter": "D", "text": "2F + 3Lo<"}], "correct": ["C"], "feedback": ""}, {"id": "Q12", "type": "mc", "section": "B", "question": "What is the correct written order of the jump modifiers?", "video_url": null, "options": [{"letter": "A", "text": "Rotation, Edge, Bonus"}, {"letter": "B", "text": "Edge, Rotation, Bonus"}, {"letter": "C", "text": "Bonus, Rotation, Edge"}, {"letter": "D", "text": "Edge, Bonus, Rotation"}], "correct": ["B"], "feedback": ""}, {"id": "Q13", "type": "mc", "section": "C", "question": "A Novice Women skater executes the following jumps in her free skate: 3T + 2T; 3Lz + 3T<; 3S; 3Lo; 2A; 2A + 3Lo; 2F How many bonus points does the skater achieve?", "video_url": null, "options": [{"letter": "A", "text": "0"}, {"letter": "B", "text": "1"}, {"letter": "C", "text": "2"}, {"letter": "D", "text": "3"}, {"letter": "E", "text": "4"}, {"letter": "F", "text": "5"}], "correct": ["F"], "feedback": "First 3T, First 3Lz, 2.0 reportoire bonus, 2A followed immediately by triple. (No triple triple bonus because 3T is under)"}, {"id": "Q14", "type": "mc", "section": "C", "question": "A Junior man in the short program executes the following jumps: Triple Axel; Triple Flip; Triple Toe + Triple Toe What will appear on the final protocol?", "video_url": null, "options": [{"letter": "A", "text": "1. 3A\n2. 3F\n3. 3T + 3T"}, {"letter": "B", "text": "1. 3A\n2. 3F*\n3. 3T + 3T"}, {"letter": "C", "text": "1. 3Ab1\n2. 3F*\n3. 3T + 3T"}, {"letter": "D", "text": "1. 3Ab1\n2. 3F*\n3. 3T + 3Tb1"}], "correct": ["D"], "feedback": ""}, {"id": "Q15", "type": "mc", "section": "B", "question": "In a FS, a skater executes a double flip, single Euler, three-turn on the same foot, and a single axel. What will appear on the final protocol?", "video_url": null, "options": [{"letter": "A", "text": "2F + 1A + SEQ"}, {"letter": "B", "text": "2F + 1Eu + 1A + SEQ"}, {"letter": "C", "text": "2F + 1Eu + COMBO + 1A*"}, {"letter": "D", "text": "2F + 1Eu + 1A"}], "correct": ["D"], "feedback": ""}, {"id": "Q16", "type": "mc", "section": "C", "question": "A Senior woman executes the following jumps in her SP: 2A; 2T; 3Lz (fall) What codes are on the final protocol?", "video_url": null, "options": [{"letter": "A", "text": "1. 2A\n2. 2T*\n3. 3Lz + COMBO"}, {"letter": "B", "text": "1. 2A\n2. 2T + COMBO\n3. 3Lz"}, {"letter": "C", "text": "1. 2A\n2. 2T\n3. 3Lz"}, {"letter": "D", "text": "1. 2A + COMBO\n2. 2T*\n3. 3Lz"}], "correct": ["B"], "feedback": ""}, {"id": "Q17", "type": "mc", "section": "C", "question": "A Novice Man does the following jumps in this order for the short program: 2A, 3S+1Lo, 3Lz+3Lo, how should they appear on the final protocol?", "video_url": null, "options": [{"letter": "A", "text": "2A, 3S+1Lo, 3Lz+3Lo"}, {"letter": "B", "text": "2A*, 3S+1Lo, 3Lz+3Lo"}, {"letter": "C", "text": "2A, 3S+1Lo, 3Lz*+3Lo*"}, {"letter": "D", "text": "2A, 3S+COMBO, 3Lz*+3Lo*"}, {"letter": "E", "text": "2A, 3S+1Lo*, 3Lz+3Lo*"}, {"letter": "F", "text": "2A, 3S+1Lo*, 3Lz+COMBO"}], "correct": ["E"], "feedback": ""}, {"id": "Q18", "type": "mc", "section": "C", "question": "How many different double jumps may be repeated in a Juvenile Boys Free Skate?", "video_url": null, "options": [{"letter": "A", "text": "One"}, {"letter": "B", "text": "Two"}, {"letter": "C", "text": "Three"}, {"letter": "D", "text": "Four"}, {"letter": "E", "text": "Five"}], "correct": ["C"], "feedback": ""}, {"id": "Q19", "type": "mc", "section": "C", "question": "Select the correctly vetting program for an Intermediate Men's free skate including bonuses if applicable.", "video_url": null, "options": [{"letter": "A", "text": "3Sb1\n2Lz+2T\n3Lo<<\nStSqB\n2A+1Eu+3Sb1\nCCoSp3\n3Lo<b1+1Lo\n2A*\nCCSp2*"}, {"letter": "B", "text": "3Sb1\n2Lz+2T\n3Lo<<\nStSqB\n2A+1Eu+3S\nCCoSp3\n3Lo<b1+1Lo\n2A\nCCSp2*"}, {"letter": "C", "text": "3S\n2Lz+2T\n3Lo<<\nStSqB\n2A+1Eu+3S\nCCoSp3\n3Lo<+1Lo\n2A\nCCSp2"}, {"letter": "D", "text": "3Sb1\n2Lz+2T\n3Lo<<b1\nStSqB\n2Ab1+1Eu+3Sb1\nCCoSp3\n3Lo<+1Lo\n2Ab1\nCCSp2"}], "correct": ["A"], "feedback": ""}, {"id": "Q20", "type": "mc", "section": "B", "question": "What is the abbreviation in the Free Skating for the following executed element: Euler + Double Flip", "video_url": null, "options": [{"letter": "A", "text": "1Eu+2F"}, {"letter": "B", "text": "2F"}, {"letter": "C", "text": "Eu+2F"}, {"letter": "D", "text": "Eu*+2F"}], "correct": ["B"], "feedback": ""}, {"id": "Q21", "type": "mc", "section": "B", "question": "What is the written element code of the following jump combination: Double Flip, Euler (under rotated), Double Salchow", "video_url": null, "options": [{"letter": "A", "text": "2F+1Eu<+2S"}, {"letter": "B", "text": "2F+1Eu+2S"}, {"letter": "C", "text": "2F+Eu+2S"}, {"letter": "D", "text": "2F+Eu*+2S"}], "correct": ["B"], "feedback": ""}, {"id": "Q22", "type": "mc", "section": "C", "question": "Senior Men SP: An athlete performs a quadruple toe loop and falls. Later in the program he performs a clean quadruple Salchow with an intentional undisturbed landing edge. Where will the combination be assigned?", "video_url": null, "options": [{"letter": "A", "text": "4T"}, {"letter": "B", "text": "4S"}, {"letter": "C", "text": "Neither"}, {"letter": "D", "text": "Both"}], "correct": ["A"], "feedback": ""}, {"id": "Q23", "type": "mc", "section": "C", "question": "In the Short Program, if a skater does more than 1 full revolution on the ice between the first and second jump, what is the call?", "video_url": null, "options": [{"letter": "A", "text": "Jump+Jump"}, {"letter": "B", "text": "Jump+Jump*"}, {"letter": "C", "text": "Jump+Combo"}, {"letter": "D", "text": "Jump+Combo+Jump*"}, {"letter": "E", "text": "Jump+Combo+Jump"}], "correct": ["D"], "feedback": ""}, {"id": "Q24", "type": "mc", "section": "C", "question": "In the Short Program, if a skater falls or steps out of a jump and immediately after that executes another jump, how will the element be called?", "video_url": null, "options": [{"letter": "A", "text": "Jump+Jump"}, {"letter": "B", "text": "Jump+Jump*"}, {"letter": "C", "text": "Jump+Seq+Jump*"}, {"letter": "D", "text": "Jump+Combo+Jump*"}, {"letter": "E", "text": "Jump+Combo+Jump"}], "correct": ["D"], "feedback": ""}, {"id": "Q25", "type": "mc", "section": "C", "question": "What is the correct written order of the jump modifiers?", "video_url": null, "options": [{"letter": "A", "text": "Rotation, Edge, Bonus"}, {"letter": "B", "text": "Edge, Rotation, Bonus"}, {"letter": "C", "text": "Bonus, Rotation, Edge"}, {"letter": "D", "text": "Edge, Bonus, Rotation"}], "correct": ["B"], "feedback": ""}, {"id": "Q26", "type": "mc", "section": "D", "question": "A skater may perform up to three jump sequences in a Free Skate Program.", "video_url": null, "options": [{"letter": "A", "text": "FALSE"}, {"letter": "B", "text": "TRUE"}], "correct": ["A"], "feedback": ""}, {"id": "Q27", "type": "mc", "section": "D", "question": "In the short program the skater executes a single loop in the step sequence. This jump is called.", "video_url": null, "options": [{"letter": "A", "text": "FALSE"}, {"letter": "B", "text": "TRUE"}], "correct": ["A"], "feedback": ""}, {"id": "Q28", "type": "mc", "section": "C", "question": "In the Short Program the skater executes a double loop in the step sequence. This jump is called.", "video_url": null, "options": [{"letter": "A", "text": "FALSE"}, {"letter": "B", "text": "TRUE"}], "correct": ["A"], "feedback": ""}, {"id": "Q29", "type": "mc", "section": "C", "question": "A Senior Man completes the following jumps in the short program. Where would you place +combo? Triple axel step out Triple toe step out Triple lutz fall", "video_url": null, "options": [{"letter": "A", "text": "3A"}, {"letter": "B", "text": "3T"}, {"letter": "C", "text": "3Lz"}], "correct": ["C"], "feedback": ""}, {"id": "Q30", "type": "mc", "section": "B", "question": "Senior SP: A double lutz followed by two three turns without weight transfer into a double toe loop is performed. What is the final code of this element?", "video_url": null, "options": [{"letter": "A", "text": "2Lz+2T*"}, {"letter": "B", "text": "2Lz+COMBO+2T*"}, {"letter": "C", "text": "2Lz+SEQ+2T"}, {"letter": "D", "text": "2LZ+2T"}], "correct": ["A"], "feedback": ""}, {"id": "Q31", "type": "mc", "section": "D", "question": "In a junior men's short program event, a skater falls on an underrotated triple axel. How will the element appear on the protocol?", "video_url": null, "options": [{"letter": "A", "text": "3A< with a fall tag"}, {"letter": "B", "text": "3A<< with a fall tag"}, {"letter": "C", "text": "3A<b1 with a fall tag"}, {"letter": "D", "text": "3A<b2 with a fall tag"}, {"letter": "E", "text": "3A* with a fall tag"}], "correct": ["C"], "feedback": ""}, {"id": "Q32", "type": "mc", "section": "D", "question": "In what level(s) is a bonus awarded for a quadruple jump?", "video_url": null, "options": [{"letter": "A", "text": "Intermediate and above free skate events"}, {"letter": "B", "text": "Junior free skate"}, {"letter": "C", "text": "Junior short program and free skate events"}, {"letter": "D", "text": "Novice and above short program and free skate events"}, {"letter": "E", "text": "Intermediate and novice free skate, junior short program and free skate events"}], "correct": ["B"], "feedback": ""}, {"id": "Q33", "type": "mc", "section": "C", "question": "A skater executes the following in the Free Skate: double axel, fall, single toe loop.Â What is the correct code?", "video_url": null, "options": [{"letter": "A", "text": "2A+1T"}, {"letter": "B", "text": "2A+SEQ+1T*"}, {"letter": "C", "text": "2A+1T*"}, {"letter": "D", "text": "2A+COMBO+1T*"}], "correct": ["D"], "feedback": ""}, {"id": "Q34", "type": "mc", "section": "C", "question": "During the review process, which reviews can be watched in slow motion?", "video_url": null, "options": [{"letter": "A", "text": "Jump landings for rotation"}, {"letter": "B", "text": "Jump take offs for rotation"}, {"letter": "C", "text": "Jump take offs for correct edges"}, {"letter": "D", "text": "All of the above"}, {"letter": "E", "text": "A and C only"}], "correct": ["E"], "feedback": ""}, {"id": "Q35", "type": "mc", "section": "D", "question": "Under which circumstances is a single jump ignored by the tech panel?", "video_url": null, "options": [{"letter": "A", "text": "Euler executed seperately"}, {"letter": "B", "text": "A double, triple, or quad popped to a single"}, {"letter": "C", "text": "In the ChSq"}, {"letter": "D", "text": "In the pChSq in the Juvenile FS"}, {"letter": "E", "text": "1/2 loop performed as the first jump of a combination or sequence"}, {"letter": "F", "text": "In the SP step sequence"}], "correct": ["A", "C", "E", "F"], "feedback": ""}, {"id": "FC01", "type": "flashcard", "section": "E", "question": "What are jumping elements?", "answer": "Jumping elements are:\n\nsolo jumps,\njump combinations, and\njump sequences"}, {"id": "FC02", "type": "flashcard", "section": "E", "question": "Define a jump combination", "answer": "In a jump combination:\n\nthe landing foot of a jump is the take off foot of the next jump\nOne full revolution on the ice between the jumps (free foot can touch the ice, but no weight transfer) keeps the element in the frame of the definition of ajump combination"}, {"id": "FC03", "type": "flashcard", "section": "E", "question": "How is a single Euler considered within jumping elements?", "answer": "Single Euler:\n\n An Euler, when used in combinations between two listed jumps, becomes a listed jump (1Eu) with the value indicated in the SOV\n Single Euler (1Eu) missing half a revolution or more will be considered as downgraded. In this case the judges will apply the reduction for a downgraded jump\n If the Single Euler is missing less than half a revolution, it will not be considered as under-rotated\n If the Single Euler is not clearly jumps or is executed as a step-over, the judges will apply a reduction in GOE"}, {"id": "FC04", "type": "flashcard", "section": "E", "question": "How is an intended waltz jump considered by the TP?", "answer": "If in the opinion of the TP the intended waltz jump is used only as the preparation to the next jump, this Waltz jump will not be called"}, {"id": "FC05", "type": "flashcard", "section": "E", "question": "How is a single jump more similar to a hop than a jump that is a result of a bad landing of the previous jump considered?", "answer": "The TP has the authority to not call a single jump which is more similar to a hop than a jump that is a result of a bad landing of the previous jump.\n\nThe Judges will reflect the mistake in the GOE"}, {"id": "FC06", "type": "flashcard", "section": "E", "question": "Definition of a Jump Sequence", "answer": "A jump sequence consists of two (2) jumps of any number of revolutions, beginning with any listed jump, immediately followed by an Axel type jump with a direct step from the landing curve of the first jump to the take-off curve of the Axel jump"}, {"id": "FC07", "type": "flashcard", "section": "E", "question": "Short Program\n\nHow are jumps which do not satisfy the requirements considered?", "answer": "Short Program\n\nJumps which do not satisfy the requirements (including wrong number of revolutions) will have NO VALUE, but WILL block a jumping box, if one is empty\nIf a combination of two double jumps is not allowed (Sr Men & Ladies, Jr Men), the jump with the lesser value (after the consideration of signs)"}, {"id": "FC08", "type": "flashcard", "section": "E", "question": "Free Skate\n\nHow are jumps which do not satisfy the requirements considered?", "answer": "Free Skate\n\nIf any jumps in a combination/sequence is not according to requirements, only the jump(s) not according to the requirements will be deleted"}, {"id": "FC09", "type": "flashcard", "section": "E", "question": "When is a jump considered as \"quarter\"?", "answer": "A jump will be considered as \"quarter\" if it is missing rotation of 1/4\n\nThis jump will be indicated by the Technical Panel to the Judges and in the protocols with a \"q\" symbol after the element code."}, {"id": "FC10", "type": "flashcard", "section": "E", "question": "When will a jump be considered as \"under-rotated\"?", "answer": "A jump will be considered as \"under-rotated\" if it has missing rotation of more than 1/4 but less than 1/2 revolution\n\nAn under-rotated jump will be indicated by the Technical Panel to the Judges and in the protocols with a \"\n\nJumps identified as under-rotated will receive reduced base values which are listed in the designated row of the SOV"}, {"id": "FC11", "type": "flashcard", "section": "E", "question": "When is a jump considered as \"downgraded\"?", "answer": "A jump will be considered as \"Downgraded\" if it has missing rotation of 1/2 or more\n\nA downgraded jump will be indicated by the Technical Panel to the Judges and in the protocols with a \"\\<\n\nA jump identified as downgraded will be evaluated using the SOV for the element of one rotation less (i.e. a downgraded triple will be evaluated with the SOV for the corresponding double)."}, {"id": "FC12", "type": "flashcard", "section": "E", "question": "How is an over-rotated jump considered?", "answer": "If a jump is over-rotated more than a quarter revolution, it is called as a jump with the higher revolution.\n\nFor example 2T with more than a quarter revolution will be called as 3T downgraded"}, {"id": "FC13", "type": "flashcard", "section": "E", "question": "How is a cheated take-off considered by the TP?", "answer": "A clear forward (backward for Axel type jump) take-off will be considered as a downgraded jump.\n\nThe TP may only watch the replay in REGULAR SPEED to determine the cheat and downgrade on the takeoff (more often in combinations or sequences)"}, {"id": "FC14", "type": "flashcard", "section": "E", "question": "Which edge does a flip take-off from?\n\nWhat edge does a lutz take-off from?\n\nIf the take-off is not clean correct, how are the jumps considered?", "answer": "Flip take-off is from a backward inside edge\nLutz take-off is from a backward outside edge\n\nIf the take-off edge is not clean, correct, the TP indicates the error to the Judges using the signs \"e\" (edge) and \"!\" (attention)\n\nThe TP may watch the replay in slow motion\n\nThe TP uses the sign \"e\" if the take-off edge is definitely wrong\n\nThe Base values of the jumps with the sign \"e\" are listed in the designated row of the SOV. The TP uses the sign \"!\" if the take-off edge is not clear. In this case the Base value is not reduced. Both mistakes are reflected in the GOE of the judges"}, {"id": "FC15", "type": "flashcard", "section": "E", "question": "How is a popped listed jump considered?", "answer": "The attempt will count as one jump element\n\nHowever, a small hop or jump with up to one-half revolution performed as a kind of \"decoration\" is not to be considered as a jump and will be marked within the component \"Transitions\""}, {"id": "FC16", "type": "flashcard", "section": "E", "question": "How are jumps not listed in the SOV (e.g. Walley, split jump, Inside Axel with any number of revolutions taking off from the forward inside edge) considered?", "answer": "Jumps not listed in the SOV WILL NOT COUNT AS A JUMP ELEMENT but might be used as a special entrance to the jump to be considered in the mark for Transitions\n\nA Toe Walley, however, will be called and counted as a Toe loop"}, {"id": "FC17", "type": "flashcard", "section": "E", "question": "True or False:\n\nIn combinations/sequences, all jumps may be landed on either foot", "answer": "FALSE\n\nIn combinations/sequences all jumps with more than one revolution, EXCEPT THE LAST ONE may be landed on either foot. If the last jump is landed on the wrong foot, the judges will reduce GOE"}, {"id": "FC18", "type": "flashcard", "section": "E", "question": "How is landing on the incorrect edge considered?", "answer": "The call will not change if the jump is landed on an incorrect edge.\n\nHowever Judges will reflect this in their GOE"}, {"id": "FC19", "type": "flashcard", "section": "E", "question": "How is it considered when a skater performs a spin immediately followed by a jump or vice versa?", "answer": "The two elements are called separately with credit given to difficult take off/entry (GOE).\n\nA listed jump that is called and executed immediately after a spin is not considered as a difficult exit of a spin"}, {"id": "FC20", "type": "flashcard", "section": "E", "question": "What is a jump attempt?", "answer": "In principle, a clear preparation for a take off for a jump, stepping to the entry edge or placing the toe pick into the ice and leaving the ice with or without a turn is considered an attept of a jump, receives no value and blocks a box.\nIn some cases, WHICH NEED TO BE DECIDED BY THE TP, the preparation for the take off without leaving the ice might also be called an attempt, e.g. a loop takeoff when the skater falls before leaving the ice, or a skater steps onto the forward take-off edge of an Axel and pulls back the free leg and arms, starts the forward movement to jump into the air with the free leg and arms passing through forward but at the last moment does not leave the ice, etc."}, {"id": "FC21", "type": "flashcard", "section": "E", "question": "How is a touch down with the free foot without weight transfer and up to 2 three turns or no turns between jumps in a combination considered?", "answer": "The element remains a jump combination (however Judges will reduce the GOE because of error)"}, {"id": "FC22", "type": "flashcard", "section": "E", "question": "In the case of more than one full revolution on the ice, what is the call in the SP and the FS?", "answer": "The call will be:\n\nall the jumps prior to this revolution; plus\n\n\" + COMBO\" if jump combination or SP or \" + SEQ\" if jump sequence in FS; plus\n\nall the next jumps perfomed with an \"\""}, {"id": "FC23", "type": "flashcard", "section": "E", "question": "If the first or second jump of a two-jump combination fails and turns into a \"non-listed\" jump but the other jump is a listed jump, how is the jump element considered?", "answer": "The unit will be considered as a jump combo with only the listed jump receiving value"}, {"id": "FC24", "type": "flashcard", "section": "E", "question": "In case one listed jump is followed or preceded by any non-listed jumps, what will the call be?", "answer": "The call will be the solo listed jump only"}, {"id": "FC25", "type": "flashcard", "section": "E", "question": "Short Program -\n\nIf a Junior skater performs a different jump than required, ?", "answer": "Short Program -\n\nIf a Junior skater performs a different jump than required, the element will receive no value but will block the \"jumping box\""}, {"id": "FC26", "type": "flashcard", "section": "E", "question": "Short Program -\n\nIf a skater completes a jump combo of 3 jumps, ?", "answer": "Short Program -\n\nIf a skater completes a jump combo of 3 jumps, the third executed jump will receive no value"}, {"id": "FC27", "type": "flashcard", "section": "E", "question": "Short Program -\n\nIf the same jump is executed twice as a solo jump and as part of a combination, ?", "answer": "Short Program -\n\nIf the same jump is executed twice as a solo jump and as part of a combination, the second execution will not be counted"}, {"id": "FC28", "type": "flashcard", "section": "E", "question": "Short Program -\n\nIf an extra jump is executed, ?", "answer": "Short Program -\n\nIf an extra jump is executed, only the jump(s) which is not according to the requirements will have no value.\n\nAll extra jumps are called and marked with an \"\\\"\n\nThe jumps are considered in the order of execution."}, {"id": "FC29", "type": "flashcard", "section": "E", "question": "Short Program -\n\nIf a skater falls or steps out of a jump and immediately after that executes another jump, how will the element be called?", "answer": "Short Program -\n\nIf a skater falls or steps out of a jump and immediately after that executes another jump, the element will be called as follows:\n\nFirst Jump + COMBO + Second Jump\\"}, {"id": "FC30", "type": "flashcard", "section": "E", "question": "Short Program -\n\nNo second jump in a jump combination", "answer": "Short program -\n\nIf there is no second jump in a jump combination, the TP identifies the intended combination during or after the program.\n\nIf there is no clear way to identify the combination or the solo jump, the later jump element performed will be identified as the jump combination consisting of one jump only\n\nFor example:\n4T clean and 3Lz with a fall --\\> 4T and 3Lz+COMBO\n4T with a fall and 3Lz clean --\\> 4T+COMBO and 3Lz (solo jump)"}, {"id": "FC31", "type": "flashcard", "section": "E", "question": "Free Skating -\n\nThe first repetition of a double jump as a solo jump or in a jump combination/sequence will receive ?", "answer": "Free Skating -\n\nThe first repetition of a double jump as a solo jump or in a jump combination/sequence will receive full base value"}, {"id": "FC32", "type": "flashcard", "section": "E", "question": "Free Skating -\n\nFirst repetition of a triple or quad jump of the same name and the same number of revolutions without one of them being in a jump combination/sequence", "answer": "Free Skating -\n\nBoth jumps will be counted as solo jumps, but the second of these jumps will be marked with the sign \"+REP\" and will receive 70% of the base value with result rounded to two decimal places"}, {"id": "FC33", "type": "flashcard", "section": "E", "question": "Free Skating -\n\nSecond/third repetition of a double or triple or quad jump of the same name and the same number of revolutions as a solo jump or in a jump combination/sequence", "answer": "Free Skating -\n\nOnly the jumps not according to the requirements will receive no value, but the rest of the jumps of the combination/sequence will be counted"}, {"id": "FC34", "type": "flashcard", "section": "E", "question": "Free Skating -\n\nSecond jump combo with 3 jumps", "answer": "Free Skating -\n\nOnly the jumps not according to requirements will receive no value"}, {"id": "FC35", "type": "flashcard", "section": "E", "question": "Free Skating -\n\nExtra jumps", "answer": "Free Skating -\n\nIf an extra jump is executed, only the solo jump(s) which is not according to the requirements will have no value\n\nAll extra jumps are called and marked with an \n\nThe jumps are considered in the order of execution"}, {"id": "FC36", "type": "flashcard", "section": "E", "question": "Free Skating -\n\nMore than three Jump combinations / sequences", "answer": "Free Skating -\n\nIf the number of jump combinations or sequences are more than three, only the first jump of an extra jump combinations/sequences is counted. The jump will be marked with the sign \"+REP\" and receive 70% of the base value (as a repetition of a jump combination/sequence),\n\ne.g. 3Lo+3T+REP, 3Lo+3T+2A+REP etc"}, {"id": "FC37", "type": "flashcard", "section": "E", "question": "Free Skating -\n\nIf in a jump combination or sequence a skater falls or steps out of a jump and immediately executes another jump(s), ?", "answer": "Free Skating -\n\nIf in a jump combination or sequence a skater falls or steps out of a jump and immediately executes another jump(s), the jump(s) after the mistake are not counted, and the call will be the executed jump(s) before the mistake + combo + the executed jump (if part of a jump combination) or jump(s) before the mistake + sequence + the executed jump(s) if part of a jump sequence. The jumps after the mistake are marked with an \n\n2A (hop with weight change) + 2A is called 2A+SEQ+2A\n2A+1Eu (fall/step out) +3S is called 2A+1Eu+COMBO+3S\n\nBy doing this all the executed jumps will be visible on the computer screen and it will be easy to follow the requirements of the repetition rule.\n\nThe judges GOE refer to the entire element performed"}, {"id": "FC38", "type": "flashcard", "section": "E", "question": "Free Skating -\n\nJump units not fulfilling the definition of combo/seq", "answer": "Free Skating -\n\nThe jumps are considered in the order of execution\n\nThe point where the mistake occurs will be marked with the either the sign \"+COMBO\" or \"+SEQ\" which results in 80% of the base value for the jumps prior to the mistake and asterisk () for the jumps after it\n\nE.g.\n3T+2A+SEQ+2T,\n3T+3T+SEQ+2A\n3T+1Eu+COMBO+2T"}];
+
+// State
+const state = {
+  answers: {},   // id -> { selected: [], correct: bool }
+  flipped: {},   // id -> bool
+  filter: 'all',
+  search: '',
+};
+
+// ── HELPERS ──────────────────────────────────────────────────────────────
+
+function getTypeLabel(item) {
+  if (item.type === 'flashcard') return 'Flashcard';
+  const opts = item.options || [];
+  if (opts.length === 2 && (opts[0].text === 'FALSE' || opts[0].text === 'True')) return 'True / False';
+  if ((item.correct || []).length > 1) return 'Multi-select';
+  return 'Multiple Choice';
+}
+function getTypePillClass(item) {
+  if (item.type === 'flashcard') return 'pill-fc';
+  const opts = item.options || [];
+  if (opts.length === 2 && (opts[0].text === 'FALSE' || opts[0].text === 'True')) return 'pill-tf';
+  if ((item.correct || []).length > 1) return 'pill-ms';
+  return 'pill-mc';
+}
+
+function filteredItems() {
+  return DATA.filter(item => {
+    const f = state.filter;
+    if (f === 'all') {}
+    else if (f === 'mc') { if (item.type !== 'mc') return false; }
+    else if (f === 'unanswered') { if (state.answers[item.id]) return false; }
+    else if ('ABCDE'.includes(f)) { if (item.section !== f) return false; }
+
+    if (state.search) {
+      const q = state.search.toLowerCase();
+      if (!item.question.toLowerCase().includes(q) &&
+          !(item.options || []).some(o => o.text.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+}
+
+// ── RENDER CARD ──────────────────────────────────────────────────────────
+
+function renderCard(item) {
+  const ans = state.answers[item.id];
+  const secColor = SECTIONS[item.section].color;
+  const secLabel = SECTIONS[item.section].label;
+  const typeLabel = getTypeLabel(item);
+  const typePill  = getTypePillClass(item);
+
+  let inner = '';
+
+  // Header
+  inner += `<div class="card-header">
+    <div class="card-id-badge">${item.id}</div>
+    <div class="card-section-tag" style="background:${secColor}18;color:${secColor}">${item.section} · ${secLabel}</div>
+    <div class="card-question">${escHtml(item.question)}</div>
+    <div class="card-type-pill ${typePill}">${typeLabel}</div>
+  </div>`;
+
+  // Video link
+  if (item.video_url) {
+    inner += `<div style="padding:12px 20px 0">
+      <a href="${item.video_url}" target="_blank" class="video-link">
+        <div class="video-icon">▶</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#1E40AF">Watch Video Clip</div>
+          <div style="font-size:11px;color:#3B82F6;margin-top:1px">Opens in new tab · Dropbox</div>
+        </div>
+      </a>
+    </div>`;
+  }
+
+  // FLASHCARD
+  if (item.type === 'flashcard') {
+    const flipped = state.flipped[item.id];
+    inner += `<div class="flashcard-inner">
+      <button class="flip-btn" onclick="flipCard('${item.id}')">
+        ${flipped ? '↩ Hide Answer' : '↓ Reveal Answer'}
+      </button>
+      <div class="answer-box ${flipped ? 'show' : ''}">
+        <div class="answer-label">Answer</div>
+        ${escHtml(item.answer)}
+      </div>
+    </div>`;
+  } else {
+    // MC OPTIONS
+    const isMulti = (item.correct || []).length > 1;
+    const answered = !!ans;
+    inner += `<div class="card-options">`;
+    for (const opt of item.options) {
+      let cls = 'option-btn';
+      if (answered) {
+        const wasSelected = ans.selected.includes(opt.letter);
+        const isCorrect   = item.correct.includes(opt.letter);
+        if (wasSelected && isCorrect)  cls += ' selected-correct';
+        else if (wasSelected && !isCorrect) cls += ' selected-wrong';
+        else if (!wasSelected && isCorrect) cls += ' correct-reveal';
+      }
+      inner += `<button class="${cls}" ${answered?'disabled':''} onclick="selectOption('${item.id}','${opt.letter}')">
+        <div class="option-letter">${opt.letter}</div>
+        <div class="option-text">${escHtml(opt.text)}</div>
+      </button>`;
+    }
+    inner += `</div>`;
+
+    // Feedback
+    if (answered) {
+      const isRight = ans.correct;
+      const fbCls = isRight ? 'feedback-correct' : 'feedback-wrong';
+      const fbLabel = isRight ? '✓ Correct' : '✗ Incorrect';
+      const correctList = item.correct.join(', ');
+      let feedbackContent = '';
+      if (!isRight) {
+        feedbackContent += `<div style="margin-bottom:6px;font-weight:600;">Correct answer: ${correctList}</div>`;
+      }
+      if (item.feedback && item.feedback.trim()) {
+        feedbackContent += `<div class="feedback-text">${escHtml(item.feedback.trim())}</div>`;
+      }
+      if (feedbackContent) {
+        inner += `<div class="feedback-box show ${fbCls}">
+          <div class="feedback-label">${fbLabel}</div>
+          ${feedbackContent}
+        </div>`;
+      } else {
+        inner += `<div class="feedback-box show ${fbCls}">
+          <div class="feedback-label">${fbLabel}</div>
+        </div>`;
+      }
+    }
+  }
+
+  const div = document.createElement('div');
+  div.className = `card sec-${item.section}`;
+  div.id = `card-${item.id}`;
+  div.innerHTML = inner;
+  return div;
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ── INTERACTIONS ─────────────────────────────────────────────────────────
+
+function selectOption(id, letter) {
+  const item = DATA.find(d => d.id === id);
+  if (!item || state.answers[id]) return;
+
+  const isMulti = (item.correct || []).length > 1;
+
+  if (isMulti) {
+    // For multi-select, collect all answers at once with a confirm button
+    // Simplified: treat as immediate reveal on first click
+  }
+
+  state.answers[id] = {
+    selected: [letter],
+    correct: item.correct.includes(letter) && item.correct.length === 1
+  };
+
+  // For multi-select: mark correct if the clicked one is in correct list
+  if (item.correct.length > 1) {
+    state.answers[id].correct = item.correct.includes(letter);
+  }
+
+  rerenderCard(id);
+  updateStats();
+  updateSidebar();
+  updateProgress();
+}
+
+function flipCard(id) {
+  state.flipped[id] = !state.flipped[id];
+  rerenderCard(id);
+}
+
+function rerenderCard(id) {
+  const item = DATA.find(d => d.id === id);
+  const old = document.getElementById(`card-${id}`);
+  if (old && item) {
+    const fresh = renderCard(item);
+    old.replaceWith(fresh);
+  }
+}
+
+// ── SIDEBAR ──────────────────────────────────────────────────────────────
+
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = '';
+
+  const grouped = {};
+  for (const item of DATA) {
+    if (!grouped[item.section]) grouped[item.section] = [];
+    grouped[item.section].push(item);
+  }
+
+  for (const [sec, items] of Object.entries(grouped)) {
+    const info = SECTIONS[sec];
+    const div = document.createElement('div');
+    div.className = 'sidebar-section';
+    let itemsHtml = items.map(item => {
+      const ans = state.answers[item.id];
+      const statusClass = !ans ? '' : (ans.correct ? 'correct' : 'wrong');
+      const isActive = false;
+      return `<div class="sidebar-item" onclick="scrollToCard('${item.id}')">
+        <div class="item-status ${statusClass}"></div>
+        <div class="item-id">${item.id}</div>
+        <div style="overflow:hidden;text-overflow:ellipsis">${item.question.substring(0,40)}…</div>
+      </div>`;
+    }).join('');
+    div.innerHTML = `
+      <div class="sidebar-section-header">
+        <div class="sec-dot" style="background:${info.color}"></div>
+        ${sec} · ${info.label}
+      </div>
+      <div class="sidebar-items">${itemsHtml}</div>`;
+    sidebar.appendChild(div);
+  }
+}
+
+function updateSidebar() {
+  // Just re-render status dots
+  buildSidebar();
+}
+
+function scrollToCard(id) {
+  const el = document.getElementById(`card-${id}`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ── STATS & PROGRESS ─────────────────────────────────────────────────────
+
+function updateStats() {
+  const answered = Object.keys(state.answers).length;
+  const correct  = Object.values(state.answers).filter(a => a.correct).length;
+  document.getElementById('count-answered').textContent = answered;
+  document.getElementById('count-correct').textContent  = correct;
+}
+
+function updateProgress() {
+  const items = filteredItems();
+  const answered = items.filter(i => state.answers[i.id] || state.flipped[i.id]).length;
+  const pct = items.length ? Math.round(answered / items.length * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `${answered} / ${items.length} (${pct}%)`;
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────────────
+
+function renderAll() {
+  const container = document.getElementById('cards-container');
+  container.innerHTML = '';
+  const items = filteredItems();
+
+  document.getElementById('count-total').textContent = items.length;
+  document.getElementById('progress-text').textContent = `0 / ${items.length} (0%)`;
+
+  if (items.length === 0) {
+    container.innerHTML = `<div class="empty-state"><h3>No questions found</h3><p>Try adjusting your filters or search.</p></div>`;
+    return;
+  }
+
+  for (const item of items) {
+    container.appendChild(renderCard(item));
+  }
+  updateProgress();
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────
+
+document.getElementById('filter-bar').addEventListener('click', e => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  state.filter = chip.dataset.filter;
+  renderAll();
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  state.search = e.target.value.trim();
+  renderAll();
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+
+document.getElementById('count-total').textContent = DATA.length;
+buildSidebar();
+renderAll();
+</script>
+</body>
+</html>
